@@ -89,27 +89,24 @@ export const getMarketSnapshot = createServerFn({ method: "GET" }).handler(
   }
 );
 
-// Stock universe for recommendations
-const US_STOCKS = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AVGO",
-  "AMD", "NFLX", "CRM", "ORCL", "ADBE", "COST", "JPM",
+// Stock universe for recommendations (10 each)
+export const US_STOCKS = [
+  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
+  "META", "TSLA", "AVGO", "AMD", "NFLX",
 ];
-const KR_STOCKS = [
+export const KR_STOCKS = [
   "005930.KS", "000660.KS", "035420.KS", "035720.KS", "005380.KS",
-  "051910.KS", "006400.KS", "207940.KS", "068270.KS", "323410.KS",
-  "247540.KQ", "086520.KQ",
+  "051910.KS", "006400.KS", "207940.KS", "068270.KS", "247540.KQ",
 ];
 
-const STOCK_NAMES: Record<string, string> = {
+export const STOCK_NAMES: Record<string, string> = {
   "AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet", "AMZN": "Amazon",
   "NVDA": "NVIDIA", "META": "Meta", "TSLA": "Tesla", "AVGO": "Broadcom",
-  "AMD": "AMD", "NFLX": "Netflix", "CRM": "Salesforce", "ORCL": "Oracle",
-  "ADBE": "Adobe", "COST": "Costco", "JPM": "JPMorgan",
+  "AMD": "AMD", "NFLX": "Netflix",
   "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "035420.KS": "NAVER",
   "035720.KS": "카카오", "005380.KS": "현대차", "051910.KS": "LG화학",
   "006400.KS": "삼성SDI", "207940.KS": "삼성바이오로직스",
-  "068270.KS": "셀트리온", "323410.KS": "카카오뱅크",
-  "247540.KQ": "에코프로비엠", "086520.KQ": "에코프로",
+  "068270.KS": "셀트리온", "247540.KQ": "에코프로비엠",
 };
 
 export type StockMetric = {
