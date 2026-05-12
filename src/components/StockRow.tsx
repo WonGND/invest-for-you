@@ -1,9 +1,20 @@
 import type { StockMetric } from "@/lib/market.functions";
 
-export function StockRow({ s, rank }: { s: StockMetric; rank: number }) {
+export function StockRow({
+  s,
+  rank,
+  onClick,
+}: {
+  s: StockMetric;
+  rank: number;
+  onClick?: () => void;
+}) {
   const up = s.changePercent >= 0;
   return (
-    <div className="grid grid-cols-12 gap-2 items-center py-3 px-4 border-b border-border last:border-b-0 hover:bg-[color:var(--surface-2)]/50 transition-colors">
+    <button
+      onClick={onClick}
+      className="w-full text-left grid grid-cols-12 gap-2 items-center py-3 px-4 border-b border-border last:border-b-0 hover:bg-[color:var(--surface-2)]/60 transition-colors cursor-pointer"
+    >
       <div className="col-span-1 text-sm font-bold text-[color:var(--primary)] tabular">
         #{rank}
       </div>
@@ -31,6 +42,6 @@ export function StockRow({ s, rank }: { s: StockMetric; rank: number }) {
           {s.score.toFixed(1)}
         </span>
       </div>
-    </div>
+    </button>
   );
 }

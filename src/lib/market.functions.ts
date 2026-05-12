@@ -89,27 +89,24 @@ export const getMarketSnapshot = createServerFn({ method: "GET" }).handler(
   }
 );
 
-// Stock universe for recommendations
-const US_STOCKS = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AVGO",
-  "AMD", "NFLX", "CRM", "ORCL", "ADBE", "COST", "JPM",
+// Stock universe for recommendations (10 each)
+export const US_STOCKS = [
+  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
+  "META", "TSLA", "AVGO", "AMD", "NFLX",
 ];
-const KR_STOCKS = [
+export const KR_STOCKS = [
   "005930.KS", "000660.KS", "035420.KS", "035720.KS", "005380.KS",
-  "051910.KS", "006400.KS", "207940.KS", "068270.KS", "323410.KS",
-  "247540.KQ", "086520.KQ",
+  "051910.KS", "006400.KS", "207940.KS", "068270.KS", "247540.KQ",
 ];
 
-const STOCK_NAMES: Record<string, string> = {
+export const STOCK_NAMES: Record<string, string> = {
   "AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet", "AMZN": "Amazon",
   "NVDA": "NVIDIA", "META": "Meta", "TSLA": "Tesla", "AVGO": "Broadcom",
-  "AMD": "AMD", "NFLX": "Netflix", "CRM": "Salesforce", "ORCL": "Oracle",
-  "ADBE": "Adobe", "COST": "Costco", "JPM": "JPMorgan",
+  "AMD": "AMD", "NFLX": "Netflix",
   "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "035420.KS": "NAVER",
   "035720.KS": "카카오", "005380.KS": "현대차", "051910.KS": "LG화학",
   "006400.KS": "삼성SDI", "207940.KS": "삼성바이오로직스",
-  "068270.KS": "셀트리온", "323410.KS": "카카오뱅크",
-  "247540.KQ": "에코프로비엠", "086520.KQ": "에코프로",
+  "068270.KS": "셀트리온", "247540.KQ": "에코프로비엠",
 };
 
 export type StockMetric = {
@@ -278,3 +275,42 @@ export const getStockRecommendations = createServerFn({
 
   return { top, aiComment, fetchedAt: new Date().toISOString() };
 });
+
+// Chart history server function
+export type ChartPoint = { t: number; c: number };
+export type ChartRange = "1d" | "1w" | "1mo" | "1y";
+
+const RANGE_PARAMS: Record<ChartRange, { range: string; interval: string }> = {
+  "1d": { range: "1d", interval: "5m" },
+  "1w": { range: "5d", interval: "30m" },
+  "1mo": { range: "1mo", interval: "1d" },
+  "1y": { range: "1y", interval: "1d" },
+};
+
+export const getChartHistory = createServerFn({ method: "GET" })
+  .inputValidator((data: { symbol: string; range: ChartRange }) => data)
+  .handler(async ({ data }) => {
+    const { symbol, range } = data;
+    const { range: r, interval } = RANGE_PARAMS[range];
+    const url = `${YF_CHART}/${encodeURIComponent(symbol)}?interval=${interval}&range=${r}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; MarketPulse/1.0)",
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) {
+      return { points: [] as ChartPoint[], error: `HTTP ${res.status}` };
+    }
+    const json: any = await res.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) return { points: [] as ChartPoint[], error: "no data" };
+    const ts: number[] = result.timestamp ?? [];
+    const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? [];
+    const points: ChartPoint[] = [];
+    for (let i = 0; i < ts.length; i++) {
+      const c = closes[i];
+      if (c != null) points.push({ t: ts[i] * 1000, c });
+    }
+    return { points, error: null as string | null };
+  });
