@@ -275,3 +275,42 @@ export const getStockRecommendations = createServerFn({
 
   return { top, aiComment, fetchedAt: new Date().toISOString() };
 });
+
+// Chart history server function
+export type ChartPoint = { t: number; c: number };
+export type ChartRange = "1d" | "1w" | "1mo" | "1y";
+
+const RANGE_PARAMS: Record<ChartRange, { range: string; interval: string }> = {
+  "1d": { range: "1d", interval: "5m" },
+  "1w": { range: "5d", interval: "30m" },
+  "1mo": { range: "1mo", interval: "1d" },
+  "1y": { range: "1y", interval: "1d" },
+};
+
+export const getChartHistory = createServerFn({ method: "GET" })
+  .inputValidator((data: { symbol: string; range: ChartRange }) => data)
+  .handler(async ({ data }) => {
+    const { symbol, range } = data;
+    const { range: r, interval } = RANGE_PARAMS[range];
+    const url = `${YF_CHART}/${encodeURIComponent(symbol)}?interval=${interval}&range=${r}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; MarketPulse/1.0)",
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) {
+      return { points: [] as ChartPoint[], error: `HTTP ${res.status}` };
+    }
+    const json: any = await res.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) return { points: [] as ChartPoint[], error: "no data" };
+    const ts: number[] = result.timestamp ?? [];
+    const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? [];
+    const points: ChartPoint[] = [];
+    for (let i = 0; i < ts.length; i++) {
+      const c = closes[i];
+      if (c != null) points.push({ t: ts[i] * 1000, c });
+    }
+    return { points, error: null as string | null };
+  });
