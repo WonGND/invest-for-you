@@ -43,9 +43,8 @@ function Dashboard() {
     staleTime: 2 * 60_000,
   });
 
-  const grouped = (market.data?.quotes ?? []).reduce<
-    Record<string, typeof market.data.quotes>
-  >((acc, q) => {
+  const quotes = market.data?.quotes ?? [];
+  const grouped = quotes.reduce<Record<string, typeof quotes>>((acc, q) => {
     (acc[q.category] ||= []).push(q);
     return acc;
   }, {});
