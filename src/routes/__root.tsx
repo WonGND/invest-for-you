@@ -72,14 +72,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Invest recommend website-test" },
+      { name: "description", content: "주식 추천 사이트 테스트용" },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Invest recommend website-test" },
+      { property: "og:description", content: "주식 추천 사이트 테스트용" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Invest recommend website-test" },
+      { name: "twitter:description", content: "주식 추천 사이트 테스트용" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/83a6e2a8-5d60-43a2-9a39-eebf1fac94c3/id-preview-040cbdd8--a3abf272-3207-47f9-a0c6-d80af67814ba.lovable.app-1778824743742.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/83a6e2a8-5d60-43a2-9a39-eebf1fac94c3/id-preview-040cbdd8--a3abf272-3207-47f9-a0c6-d80af67814ba.lovable.app-1778824743742.png" },
     ],
     links: [
       {
