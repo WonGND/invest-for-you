@@ -468,11 +468,11 @@ export const analyzeStock = createServerFn({ method: "GET" })
                 {
                   role: "system",
                   content:
-                    "당신은 한국어로 답변하는 시장 분석가입니다. 모멘텀/뉴스 흐름을 종합해 정보 제공 목적의 의견을 제시하세요. 반드시 JSON만 반환하세요.",
+                    "당신은 한국어로 답변하는 시장 분석가입니다. 모멘텀/뉴스 흐름을 종합해 정보 제공 목적의 의견을 제시합니다. 반드시 JSON만 반환하세요. 가격 산출 규칙은 절대 위반 금지: 매수→ stopLoss < entryPrice < targetPrice, 매도→ targetPrice < entryPrice < stopLoss(숏 관점), 보유/관망→ stopLoss < 현재가 < targetPrice. 모든 가격은 현재가와 같은 통화/스케일이어야 하며 현재가 대비 ±30% 범위를 벗어나지 마세요.",
                 },
                 {
                   role: "user",
-                  content: `종목: ${name} (${symbol})\n[지표]\n${metricText}\n\n[최근 뉴스]\n${newsText}\n\n다음 JSON 스키마로만 답하세요 (코드블록 없이 순수 JSON):\n{\n  "action": "매수" | "보유" | "매도" | "관망",\n  "confidence": "낮음" | "중간" | "높음",\n  "targetPrice": number,   // 향후 목표가 (현재가 통화 동일)\n  "stopLoss": number,      // 손절가\n  "horizon": string,       // 예: "1~3개월"\n  "rationale": string,     // 핵심 근거 2~4문장 (지표+뉴스 기반)\n  "risks": string          // 주의해야 할 리스크 1~2문장\n}`,
+                  content: `종목: ${name} (${symbol})\n현재가: ${price.toFixed(2)} ${currency ?? ""}\n[지표]\n${metricText}\n\n[최근 뉴스]\n${newsText}\n\n다음 JSON 스키마로만 답하세요 (코드블록/주석 없이 순수 JSON):\n{\n  "action": "매수" | "보유" | "매도" | "관망",\n  "confidence": "낮음" | "중간" | "높음",\n  "entryPrice": number,         // 권장 진입가 (현재가 ±5% 이내, 매수면 약간 낮게/매도면 약간 높게)\n  "targetPrice": number,        // 목표가 - 위 규칙 엄수\n  "stopLoss": number,           // 손절가 - 위 규칙 엄수\n  "horizon": string,            // 예: "1~3개월"\n  "rationale": string,          // 핵심 근거 2~4문장 (지표+뉴스)\n  "risks": string,              // 주의해야 할 리스크 1~2문장\n  "keyPoints": string[],        // 초보자용 체크리스트 4~6개. 분할매수, 분산투자, 손절 준수 같은 실행 팁 포함\n  "glossary": [{"term": string, "meaning": string}]  // 본문에서 사용한 전문 용어 3~5개를 한 문장으로 풀이 (RSI, 모멘텀, 손절, 목표가, PER 등)\n}`,
                 },
               ],
               response_format: { type: "json_object" },
@@ -484,14 +484,60 @@ export const analyzeStock = createServerFn({ method: "GET" })
           rawAi = json?.choices?.[0]?.message?.content ?? "";
           try {
             const parsed = JSON.parse(rawAi);
+            const action = parsed.action;
+            let entry = typeof parsed.entryPrice === "number" ? parsed.entryPrice : price;
+            let target = typeof parsed.targetPrice === "number" ? parsed.targetPrice : null;
+            let stop = typeof parsed.stopLoss === "number" ? parsed.stopLoss : null;
+            let autoAdjusted = false;
+
+            // Sanity: clip entry within ±10% of current
+            if (Math.abs(entry - price) / price > 0.1) {
+              entry = price;
+              autoAdjusted = true;
+            }
+
+            // Enforce relationship per action
+            const wantBull = action === "매수" || action === "보유" || action === "관망";
+            const wantBear = action === "매도";
+            const validBull = target != null && stop != null && stop < entry && entry < target;
+            const validBear = target != null && stop != null && target < entry && entry < stop;
+
+            if ((wantBull && !validBull) || (wantBear && !validBear)) {
+              autoAdjusted = true;
+              if (wantBear) {
+                target = +(entry * 0.92).toFixed(2);
+                stop = +(entry * 1.05).toFixed(2);
+              } else {
+                target = +(entry * 1.1).toFixed(2);
+                stop = +(entry * 0.93).toFixed(2);
+              }
+            }
+
+            const expectedReturn =
+              target != null ? ((target - entry) / entry) * 100 : null;
+            const riskReward =
+              target != null && stop != null && entry !== stop
+                ? Math.abs(target - entry) / Math.abs(entry - stop)
+                : null;
+
             recommendation = {
-              action: parsed.action,
+              action,
               confidence: parsed.confidence,
-              targetPrice: typeof parsed.targetPrice === "number" ? parsed.targetPrice : null,
-              stopLoss: typeof parsed.stopLoss === "number" ? parsed.stopLoss : null,
+              entryPrice: entry,
+              targetPrice: target,
+              stopLoss: stop,
+              expectedReturn,
+              riskReward,
               horizon: parsed.horizon ?? "",
               rationale: parsed.rationale ?? "",
               risks: parsed.risks ?? "",
+              keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.slice(0, 8) : [],
+              glossary: Array.isArray(parsed.glossary)
+                ? parsed.glossary
+                    .filter((g: any) => g && typeof g.term === "string" && typeof g.meaning === "string")
+                    .slice(0, 6)
+                : [],
+              autoAdjusted,
             };
           } catch {
             // leave rawAi for display
