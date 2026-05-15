@@ -90,7 +90,7 @@ export const getMarketSnapshot = createServerFn({ method: "GET" }).handler(
 );
 
 // ===== Market News =====
-export type NewsItem = {
+export type MarketNewsItem = {
   title: string;
   link: string;
   source: string;
