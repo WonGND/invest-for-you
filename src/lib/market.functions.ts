@@ -275,7 +275,7 @@ export const getStockRecommendations = createServerFn({
     }
   }
 
-  return { top, aiComment, fetchedAt: new Date().toISOString() };
+  return { top, krSorted, usSorted, aiComment, fetchedAt: new Date().toISOString() };
 });
 
 // Chart history server function
