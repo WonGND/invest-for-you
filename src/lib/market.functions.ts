@@ -335,7 +335,8 @@ export type StockAnalysis = {
     entryPrice: number | null;
     targetPrice: number | null;
     stopLoss: number | null;
-    expectedReturn: number | null; // % from entry to target
+    expectedReturn: number | null; // % from entry to target (always positive when valid)
+    stopLossPercent: number | null; // % loss from entry to stop (negative)
     riskReward: number | null; // |target-entry| / |entry-stop|
     horizon: string;
     rationale: string;
