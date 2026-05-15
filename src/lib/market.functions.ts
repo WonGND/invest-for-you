@@ -497,25 +497,23 @@ export const analyzeStock = createServerFn({ method: "GET" })
               autoAdjusted = true;
             }
 
-            // Enforce relationship per action
-            const wantBull = action === "매수" || action === "보유" || action === "관망";
-            const wantBear = action === "매도";
-            const validBull = target != null && stop != null && stop < entry && entry < target;
-            const validBear = target != null && stop != null && target < entry && entry < stop;
+            // Enforce: stopLoss < entry < targetPrice ALWAYS (regardless of action)
+            const valid =
+              target != null && stop != null && stop < entry && entry < target;
 
-            if ((wantBull && !validBull) || (wantBear && !validBear)) {
+            if (!valid) {
               autoAdjusted = true;
-              if (wantBear) {
-                target = +(entry * 0.92).toFixed(2);
-                stop = +(entry * 1.05).toFixed(2);
-              } else {
-                target = +(entry * 1.1).toFixed(2);
-                stop = +(entry * 0.93).toFixed(2);
-              }
+              // Default fallbacks based on action conviction
+              const upPct = action === "매수" ? 0.10 : action === "보유" ? 0.07 : 0.05;
+              const downPct = action === "매도" ? 0.05 : 0.07;
+              target = +(entry * (1 + upPct)).toFixed(2);
+              stop = +(entry * (1 - downPct)).toFixed(2);
             }
 
             const expectedReturn =
               target != null ? ((target - entry) / entry) * 100 : null;
+            const stopLossPercent =
+              stop != null ? ((stop - entry) / entry) * 100 : null;
             const riskReward =
               target != null && stop != null && entry !== stop
                 ? Math.abs(target - entry) / Math.abs(entry - stop)
@@ -528,6 +526,7 @@ export const analyzeStock = createServerFn({ method: "GET" })
               targetPrice: target,
               stopLoss: stop,
               expectedReturn,
+              stopLossPercent,
               riskReward,
               horizon: parsed.horizon ?? "",
               rationale: parsed.rationale ?? "",
