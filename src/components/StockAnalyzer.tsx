@@ -194,6 +194,40 @@ export function StockAnalyzer() {
                 <div className="font-medium mb-1">⚠️ 리스크</div>
                 <p className="text-muted-foreground">{data.recommendation.risks}</p>
               </div>
+
+              {data.recommendation.keyPoints && data.recommendation.keyPoints.length > 0 && (
+                <div className="rounded-md bg-[color:var(--surface-2)]/60 p-3">
+                  <div className="flex items-center gap-1.5 text-sm font-medium mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-[color:var(--bull)]" />
+                    초보자를 위한 체크리스트
+                  </div>
+                  <ul className="space-y-1.5">
+                    {data.recommendation.keyPoints.map((p, i) => (
+                      <li key={i} className="text-sm leading-snug flex gap-2">
+                        <span className="text-[color:var(--primary)] shrink-0">•</span>
+                        <span className="text-foreground/90">{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {data.recommendation.glossary && data.recommendation.glossary.length > 0 && (
+                <div className="rounded-md bg-[color:var(--surface-2)]/60 p-3">
+                  <div className="flex items-center gap-1.5 text-sm font-medium mb-2">
+                    <BookOpen className="w-4 h-4 text-[color:var(--primary)]" />
+                    용어 풀이
+                  </div>
+                  <dl className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    {data.recommendation.glossary.map((g, i) => (
+                      <div key={i} className="leading-snug">
+                        <dt className="inline font-semibold text-foreground">{g.term}</dt>
+                        <dd className="inline text-muted-foreground"> — {g.meaning}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
             </div>
           )}
 
