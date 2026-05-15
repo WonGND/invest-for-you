@@ -58,35 +58,9 @@ function Dashboard() {
     return acc;
   }, {});
 
-  // Build per-market stock lists from recommendations (already scored & sorted in fn).
-  // We need to expose all 10 of each market, ranked within their market.
-  const recsAll = recs.data?.top ?? [];
-  // The recs fn returns only top 8 globally. We want full 10 per market displayed.
-  // So fall back: re-fetch full lists via market metric isn't exposed, but we can
-  // enrich by displaying the top items belonging to each market and add placeholders.
-  const krList = recsAll.filter((s) => s.market === "KR");
-  const usList = recsAll.filter((s) => s.market === "US");
-
-  // Add placeholder entries for symbols not in top-8 so user still sees all 10
-  const padList = (
-    list: StockMetric[],
-    universe: string[],
-    market: "KR" | "US"
-  ): (StockMetric | { symbol: string; name: string; market: "KR" | "US"; placeholder: true })[] => {
-    const present = new Set(list.map((s) => s.symbol));
-    const missing = universe
-      .filter((sym) => !present.has(sym))
-      .map((sym) => ({
-        symbol: sym,
-        name: STOCK_NAMES[sym] ?? sym,
-        market,
-        placeholder: true as const,
-      }));
-    return [...list, ...missing];
-  };
-
-  const krFull = padList(krList, KR_STOCKS, "KR");
-  const usFull = padList(usList, US_STOCKS, "US");
+  // Full sorted lists per market come from server (10 each, by score desc).
+  const krFull = recs.data?.krSorted ?? [];
+  const usFull = recs.data?.usSorted ?? [];
 
   return (
     <div className="min-h-screen">
