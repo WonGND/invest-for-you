@@ -134,10 +134,26 @@ export function StockAnalyzer() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-md bg-[color:var(--surface-2)] p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                    <LogIn className="w-3 h-3" /> 추천 진입가
+                  </div>
+                  <div className="text-lg font-semibold tabular">
+                    {data.recommendation.entryPrice != null
+                      ? data.recommendation.entryPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : "—"}
+                  </div>
+                </div>
                 <div className="rounded-md bg-[color:var(--surface-2)] p-3">
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
                     <Target className="w-3 h-3" /> 목표가
+                    {data.recommendation.expectedReturn != null && (
+                      <span className="ml-auto text-[10px]" style={{ color: "var(--bull)" }}>
+                        {data.recommendation.expectedReturn >= 0 ? "+" : ""}
+                        {data.recommendation.expectedReturn.toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                   <div className="text-lg font-semibold tabular" style={{ color: "var(--bull)" }}>
                     {data.recommendation.targetPrice != null
@@ -156,6 +172,19 @@ export function StockAnalyzer() {
                   </div>
                 </div>
               </div>
+
+              {data.recommendation.riskReward != null && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Info className="w-3 h-3" />
+                  손익비 (Risk/Reward) {data.recommendation.riskReward.toFixed(2)} : 1
+                  {data.recommendation.riskReward >= 2 ? " — 양호" : data.recommendation.riskReward >= 1 ? " — 보통" : " — 불리"}
+                  {data.recommendation.autoAdjusted && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded bg-[color:var(--surface-2)]">
+                      가격 자동보정됨
+                    </span>
+                  )}
+                </div>
+              )}
 
               <div className="text-sm leading-6">
                 <div className="font-medium mb-1">분석 근거</div>
