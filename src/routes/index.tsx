@@ -53,6 +53,12 @@ function Dashboard() {
     refetchInterval: 5 * 60_000,
     staleTime: 2 * 60_000,
   });
+  const news = useQuery({
+    queryKey: ["news"],
+    queryFn: () => getMarketNews(),
+    refetchInterval: 5 * 60_000,
+    staleTime: 2 * 60_000,
+  });
 
   const quotes = market.data?.quotes ?? [];
   const grouped = quotes.reduce<Record<string, typeof quotes>>((acc, q) => {
