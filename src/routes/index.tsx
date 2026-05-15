@@ -5,14 +5,12 @@ import { Activity, Sparkles, RefreshCw, TrendingUp } from "lucide-react";
 import {
   getMarketSnapshot,
   getStockRecommendations,
-  KR_STOCKS,
-  US_STOCKS,
-  STOCK_NAMES,
   type StockMetric,
 } from "@/lib/market.functions";
 import { IndicatorCard } from "@/components/IndicatorCard";
 import { StockRow } from "@/components/StockRow";
 import { ChartDialog } from "@/components/ChartDialog";
+import { StockAnalyzer } from "@/components/StockAnalyzer";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/")({
@@ -60,35 +58,9 @@ function Dashboard() {
     return acc;
   }, {});
 
-  // Build per-market stock lists from recommendations (already scored & sorted in fn).
-  // We need to expose all 10 of each market, ranked within their market.
-  const recsAll = recs.data?.top ?? [];
-  // The recs fn returns only top 8 globally. We want full 10 per market displayed.
-  // So fall back: re-fetch full lists via market metric isn't exposed, but we can
-  // enrich by displaying the top items belonging to each market and add placeholders.
-  const krList = recsAll.filter((s) => s.market === "KR");
-  const usList = recsAll.filter((s) => s.market === "US");
-
-  // Add placeholder entries for symbols not in top-8 so user still sees all 10
-  const padList = (
-    list: StockMetric[],
-    universe: string[],
-    market: "KR" | "US"
-  ): (StockMetric | { symbol: string; name: string; market: "KR" | "US"; placeholder: true })[] => {
-    const present = new Set(list.map((s) => s.symbol));
-    const missing = universe
-      .filter((sym) => !present.has(sym))
-      .map((sym) => ({
-        symbol: sym,
-        name: STOCK_NAMES[sym] ?? sym,
-        market,
-        placeholder: true as const,
-      }));
-    return [...list, ...missing];
-  };
-
-  const krFull = padList(krList, KR_STOCKS, "KR");
-  const usFull = padList(usList, US_STOCKS, "US");
+  // Full sorted lists per market come from server (10 each, by score desc).
+  const krFull = recs.data?.krSorted ?? [];
+  const usFull = recs.data?.usSorted ?? [];
 
   return (
     <div className="min-h-screen">
@@ -218,6 +190,11 @@ function Dashboard() {
           )}
         </section>
 
+        {/* Stock analyzer */}
+        <section>
+          <StockAnalyzer />
+        </section>
+
         <footer className="text-center text-[11px] text-muted-foreground pt-6 pb-4 border-t border-border/60">
           데이터: Yahoo Finance · 본 사이트는 정보 제공 목적이며 투자 권유가 아닙니다.
         </footer>
@@ -236,16 +213,12 @@ function Dashboard() {
   );
 }
 
-type ListItem =
-  | StockMetric
-  | { symbol: string; name: string; market: "KR" | "US"; placeholder: true };
-
 function StockTable({
   items,
   loading,
   onSelect,
 }: {
-  items: ListItem[];
+  items: StockMetric[];
   loading: boolean;
   onSelect: (s: Selected) => void;
 }) {
@@ -259,46 +232,20 @@ function StockTable({
         <div className="col-span-1 text-right">RSI</div>
         <div className="col-span-2 text-right">스코어</div>
       </div>
-      {loading && (
+      {loading && items.length === 0 && (
         <div className="p-8 text-center text-sm text-muted-foreground">
           지표 분석 중...
         </div>
       )}
-      {items.map((item, i) => {
-        if ("placeholder" in item) {
-          return (
-            <button
-              key={item.symbol}
-              onClick={() =>
-                onSelect({ symbol: item.symbol, name: item.name, meta: item.market })
-              }
-              className="w-full text-left grid grid-cols-12 gap-2 items-center py-3 px-4 border-b border-border last:border-b-0 hover:bg-[color:var(--surface-2)]/60 transition-colors cursor-pointer"
-            >
-              <div className="col-span-1 text-sm text-muted-foreground tabular">
-                #{i + 1}
-              </div>
-              <div className="col-span-4">
-                <div className="font-medium text-sm">{item.name}</div>
-                <div className="text-[11px] text-muted-foreground tabular">
-                  {item.symbol} · {item.market}
-                </div>
-              </div>
-              <div className="col-span-7 text-right text-xs text-muted-foreground">
-                클릭하여 차트 보기
-              </div>
-            </button>
-          );
-        }
-        const s = item;
-        return (
-          <StockRow
-            key={s.symbol}
-            s={s}
-            rank={i + 1}
-            onClick={() => onSelect({ symbol: s.symbol, name: s.name, meta: s.market })}
-          />
-        );
-      })}
+      {items.map((s, i) => (
+        <StockRow
+          key={s.symbol}
+          s={s}
+          rank={i + 1}
+          onClick={() => onSelect({ symbol: s.symbol, name: s.name, meta: s.market })}
+        />
+      ))}
     </div>
   );
 }
+
