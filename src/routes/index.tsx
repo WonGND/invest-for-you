@@ -102,6 +102,13 @@ function Dashboard() {
           <StockAnalyzer />
         </section>
 
+        {/* Market News */}
+        <NewsList
+          items={news.data?.items ?? []}
+          loading={news.isLoading}
+          fetchedAt={news.data?.fetchedAt}
+        />
+
         {/* Indicators */}
         <section>
           <div className="flex items-baseline justify-between mb-4">
