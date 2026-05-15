@@ -332,11 +332,17 @@ export type StockAnalysis = {
   recommendation: {
     action: "매수" | "보유" | "매도" | "관망";
     confidence: "낮음" | "중간" | "높음";
+    entryPrice: number | null;
     targetPrice: number | null;
     stopLoss: number | null;
+    expectedReturn: number | null; // % from entry to target
+    riskReward: number | null; // |target-entry| / |entry-stop|
     horizon: string;
     rationale: string;
     risks: string;
+    keyPoints: string[]; // beginner-friendly bullet checklist
+    glossary: { term: string; meaning: string }[]; // explain jargon used
+    autoAdjusted?: boolean; // true if we corrected target/stop math
   } | null;
   rawAi?: string;
   error?: string;
