@@ -51,7 +51,7 @@ export function StockAnalyzer() {
         <button
           type="submit"
           disabled={mut.isPending}
-          className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-md bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-md bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap shrink-0"
         >
           {mut.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

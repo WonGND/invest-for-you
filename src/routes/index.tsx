@@ -89,6 +89,11 @@ function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+        {/* Stock analyzer (top) */}
+        <section>
+          <StockAnalyzer />
+        </section>
+
         {/* Indicators */}
         <section>
           <div className="flex items-baseline justify-between mb-4">
@@ -190,10 +195,8 @@ function Dashboard() {
           )}
         </section>
 
-        {/* Stock analyzer */}
-        <section>
-          <StockAnalyzer />
-        </section>
+        {/* (analyzer moved to top) */}
+
 
         <footer className="text-center text-[11px] text-muted-foreground pt-6 pb-4 border-t border-border/60">
           데이터: Yahoo Finance · 본 사이트는 정보 제공 목적이며 투자 권유가 아닙니다.
