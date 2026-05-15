@@ -195,10 +195,8 @@ function Dashboard() {
           )}
         </section>
 
-        {/* Stock analyzer */}
-        <section>
-          <StockAnalyzer />
-        </section>
+        {/* (analyzer moved to top) */}
+
 
         <footer className="text-center text-[11px] text-muted-foreground pt-6 pb-4 border-t border-border/60">
           데이터: Yahoo Finance · 본 사이트는 정보 제공 목적이며 투자 권유가 아닙니다.
