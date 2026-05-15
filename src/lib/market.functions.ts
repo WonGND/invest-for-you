@@ -469,11 +469,11 @@ export const analyzeStock = createServerFn({ method: "GET" })
                 {
                   role: "system",
                   content:
-                    "당신은 한국어로 답변하는 시장 분석가입니다. 모멘텀/뉴스 흐름을 종합해 정보 제공 목적의 의견을 제시합니다. 반드시 JSON만 반환하세요. 가격 산출 규칙은 절대 위반 금지: 매수→ stopLoss < entryPrice < targetPrice, 매도→ targetPrice < entryPrice < stopLoss(숏 관점), 보유/관망→ stopLoss < 현재가 < targetPrice. 모든 가격은 현재가와 같은 통화/스케일이어야 하며 현재가 대비 ±30% 범위를 벗어나지 마세요.",
+                    "당신은 한국어로 답변하는 시장 분석가입니다. 모멘텀/뉴스 흐름을 종합해 정보 제공 목적의 의견을 제시합니다. 반드시 JSON만 반환하세요. 가격 산출 규칙(절대 위반 금지): action 종류와 무관하게 항상 stopLoss < entryPrice < targetPrice 이어야 합니다 (목표가는 매도하여 수익을 실현할 가격으로 진입가보다 높고, 손절가는 손실을 제한하기 위해 매도할 가격으로 진입가보다 낮습니다). action이 '매도'/'관망'이면 현재 진입을 권하지 않는다는 의미일 뿐 가격 관계는 동일합니다. 모든 가격은 현재가와 같은 통화/스케일이며 현재가 대비 ±30% 범위 이내여야 합니다.",
                 },
                 {
                   role: "user",
-                  content: `종목: ${name} (${symbol})\n현재가: ${price.toFixed(2)} ${currency ?? ""}\n[지표]\n${metricText}\n\n[최근 뉴스]\n${newsText}\n\n다음 JSON 스키마로만 답하세요 (코드블록/주석 없이 순수 JSON):\n{\n  "action": "매수" | "보유" | "매도" | "관망",\n  "confidence": "낮음" | "중간" | "높음",\n  "entryPrice": number,         // 권장 진입가 (현재가 ±5% 이내, 매수면 약간 낮게/매도면 약간 높게)\n  "targetPrice": number,        // 목표가 - 위 규칙 엄수\n  "stopLoss": number,           // 손절가 - 위 규칙 엄수\n  "horizon": string,            // 예: "1~3개월"\n  "rationale": string,          // 핵심 근거 2~4문장 (지표+뉴스)\n  "risks": string,              // 주의해야 할 리스크 1~2문장\n  "keyPoints": string[],        // 초보자용 체크리스트 4~6개. 분할매수, 분산투자, 손절 준수 같은 실행 팁 포함\n  "glossary": [{"term": string, "meaning": string}]  // 본문에서 사용한 전문 용어 3~5개를 한 문장으로 풀이 (RSI, 모멘텀, 손절, 목표가, PER 등)\n}`,
+                  content: `종목: ${name} (${symbol})\n현재가: ${price.toFixed(2)} ${currency ?? ""}\n[지표]\n${metricText}\n\n[최근 뉴스]\n${newsText}\n\n다음 JSON 스키마로만 답하세요 (코드블록/주석 없이 순수 JSON):\n{\n  "action": "매수" | "보유" | "매도" | "관망",\n  "confidence": "낮음" | "중간" | "높음",\n  "entryPrice": number,         // 권장 진입가 (현재가 ±5% 이내)\n  "targetPrice": number,        // 목표가 — 반드시 entryPrice 보다 높게 (수익 실현가)\n  "stopLoss": number,           // 손절가 — 반드시 entryPrice 보다 낮게 (손실 제한가)\n  "horizon": string,            // 예: "1~3개월"\n  "rationale": string,          // 핵심 근거 2~4문장 (지표+뉴스)\n  "risks": string,              // 주의해야 할 리스크 1~2문장\n  "keyPoints": string[],        // 초보자용 체크리스트 4~6개. 분할매수, 분산투자, 손절 준수 같은 실행 팁 포함\n  "glossary": [{"term": string, "meaning": string}]  // 본문에서 사용한 전문 용어 3~5개를 한 문장으로 풀이 (RSI, 모멘텀, 손절, 목표가, PER 등)\n}`,
                 },
               ],
               response_format: { type: "json_object" },
