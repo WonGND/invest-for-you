@@ -133,8 +133,8 @@ function parseRss(xml: string): { title: string; link: string; pubDate: string }
 async function fetchRss(
   url: string,
   source: string,
-  category: NewsItem["category"]
-): Promise<NewsItem[]> {
+  category: MarketNewsItem["category"]
+): Promise<MarketNewsItem[]> {
   try {
     const r = await fetch(url, {
       headers: {
