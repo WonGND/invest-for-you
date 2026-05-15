@@ -208,16 +208,12 @@ function Dashboard() {
   );
 }
 
-type ListItem =
-  | StockMetric
-  | { symbol: string; name: string; market: "KR" | "US"; placeholder: true };
-
 function StockTable({
   items,
   loading,
   onSelect,
 }: {
-  items: ListItem[];
+  items: StockMetric[];
   loading: boolean;
   onSelect: (s: Selected) => void;
 }) {
@@ -231,46 +227,20 @@ function StockTable({
         <div className="col-span-1 text-right">RSI</div>
         <div className="col-span-2 text-right">스코어</div>
       </div>
-      {loading && (
+      {loading && items.length === 0 && (
         <div className="p-8 text-center text-sm text-muted-foreground">
           지표 분석 중...
         </div>
       )}
-      {items.map((item, i) => {
-        if ("placeholder" in item) {
-          return (
-            <button
-              key={item.symbol}
-              onClick={() =>
-                onSelect({ symbol: item.symbol, name: item.name, meta: item.market })
-              }
-              className="w-full text-left grid grid-cols-12 gap-2 items-center py-3 px-4 border-b border-border last:border-b-0 hover:bg-[color:var(--surface-2)]/60 transition-colors cursor-pointer"
-            >
-              <div className="col-span-1 text-sm text-muted-foreground tabular">
-                #{i + 1}
-              </div>
-              <div className="col-span-4">
-                <div className="font-medium text-sm">{item.name}</div>
-                <div className="text-[11px] text-muted-foreground tabular">
-                  {item.symbol} · {item.market}
-                </div>
-              </div>
-              <div className="col-span-7 text-right text-xs text-muted-foreground">
-                클릭하여 차트 보기
-              </div>
-            </button>
-          );
-        }
-        const s = item;
-        return (
-          <StockRow
-            key={s.symbol}
-            s={s}
-            rank={i + 1}
-            onClick={() => onSelect({ symbol: s.symbol, name: s.name, meta: s.market })}
-          />
-        );
-      })}
+      {items.map((s, i) => (
+        <StockRow
+          key={s.symbol}
+          s={s}
+          rank={i + 1}
+          onClick={() => onSelect({ symbol: s.symbol, name: s.name, meta: s.market })}
+        />
+      ))}
     </div>
   );
 }
+
