@@ -224,8 +224,10 @@ export const getStockRecommendations = createServerFn({
   ]);
   const all = [...us, ...kr].filter((s): s is StockMetric => s !== null);
   const scored = all.map((s) => ({ ...s, score: scoreStock(s) }));
-  scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, 8);
+  // Sort full list by score desc; frontend filters by market.
+  const krSorted = scored.filter((s) => s.market === "KR").sort((a, b) => b.score - a.score);
+  const usSorted = scored.filter((s) => s.market === "US").sort((a, b) => b.score - a.score);
+  const top = [...scored].sort((a, b) => b.score - a.score).slice(0, 8);
 
   // AI commentary via Lovable AI Gateway
   let aiComment = "";
