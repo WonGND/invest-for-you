@@ -1,0 +1,233 @@
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { Search, Sparkles, ExternalLink, Target, ShieldAlert, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { analyzeStock, type StockAnalysis } from "@/lib/market.functions";
+
+const ACTION_COLORS: Record<string, string> = {
+  매수: "var(--bull)",
+  보유: "var(--primary)",
+  관망: "var(--muted-foreground)",
+  매도: "var(--bear)",
+};
+
+export function StockAnalyzer() {
+  const [input, setInput] = useState("");
+
+  const mut = useMutation({
+    mutationFn: (symbol: string) => analyzeStock({ data: { symbol } }),
+  });
+
+  const submit = () => {
+    const s = input.trim();
+    if (!s) return;
+    mut.mutate(s);
+  };
+
+  const data: StockAnalysis | undefined = mut.data;
+
+  return (
+    <div className="rounded-xl bg-[color:var(--surface)] border border-border p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-[color:var(--primary)]" />
+        <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          종목 분석 & AI 매매 의견
+        </h3>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        className="flex gap-2"
+      >
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="종목 코드 입력 (예: AAPL, TSLA, 005930.KS, 035420.KS)"
+          className="bg-[color:var(--surface-2)] border-border"
+        />
+        <button
+          type="submit"
+          disabled={mut.isPending}
+          className="inline-flex items-center gap-1.5 text-sm px-4 py-2 rounded-md bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:opacity-90 disabled:opacity-50 transition-opacity"
+        >
+          {mut.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Search className="w-4 h-4" />
+          )}
+          분석
+        </button>
+      </form>
+
+      {mut.isPending && (
+        <div className="text-sm text-muted-foreground py-6 text-center">
+          뉴스와 지표를 수집하고 AI가 분석 중입니다...
+        </div>
+      )}
+
+      {data?.error && (
+        <div className="text-sm text-[color:var(--bear)] bg-[color:var(--bear)]/10 border border-[color:var(--bear)]/30 rounded-md p-3">
+          {data.error}
+        </div>
+      )}
+
+      {data && !data.error && (
+        <div className="space-y-4">
+          {/* Header with price */}
+          <div className="flex items-baseline justify-between flex-wrap gap-2">
+            <div>
+              <div className="text-base font-semibold">{data.name}</div>
+              <div className="text-[11px] text-muted-foreground tabular">
+                {data.symbol} {data.currency ? `· ${data.currency}` : ""}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-semibold tabular">
+                {data.price?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </div>
+              {data.changePercent != null && (
+                <div
+                  className="text-sm tabular font-medium"
+                  style={{
+                    color:
+                      data.changePercent >= 0 ? "var(--bull)" : "var(--bear)",
+                  }}
+                >
+                  {data.changePercent >= 0 ? "+" : ""}
+                  {data.changePercent.toFixed(2)}% (1일)
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Metric strip */}
+          {data.metric && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <Metric label="5일" value={`${data.metric.changePercent5d.toFixed(2)}%`} bull={data.metric.changePercent5d >= 0} />
+              <Metric label="20일" value={`${data.metric.changePercent20d.toFixed(2)}%`} bull={data.metric.changePercent20d >= 0} />
+              <Metric label="RSI14" value={data.metric.rsi14.toFixed(0)} />
+              <Metric label="거래량비" value={`${data.metric.volumeRatio.toFixed(2)}x`} />
+            </div>
+          )}
+
+          {/* AI Recommendation */}
+          {data.recommendation && (
+            <div className="rounded-lg border border-[color:var(--primary)]/30 bg-gradient-to-br from-[color:var(--primary)]/10 to-transparent p-4 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="px-3 py-1 rounded-md text-sm font-bold"
+                    style={{
+                      backgroundColor: `color-mix(in oklab, ${ACTION_COLORS[data.recommendation.action] ?? "var(--primary)"} 20%, transparent)`,
+                      color: ACTION_COLORS[data.recommendation.action] ?? "var(--primary)",
+                    }}
+                  >
+                    {data.recommendation.action}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    확신도 {data.recommendation.confidence} · {data.recommendation.horizon}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-md bg-[color:var(--surface-2)] p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                    <Target className="w-3 h-3" /> 목표가
+                  </div>
+                  <div className="text-lg font-semibold tabular" style={{ color: "var(--bull)" }}>
+                    {data.recommendation.targetPrice != null
+                      ? data.recommendation.targetPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : "—"}
+                  </div>
+                </div>
+                <div className="rounded-md bg-[color:var(--surface-2)] p-3">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                    <ShieldAlert className="w-3 h-3" /> 손절가
+                  </div>
+                  <div className="text-lg font-semibold tabular" style={{ color: "var(--bear)" }}>
+                    {data.recommendation.stopLoss != null
+                      ? data.recommendation.stopLoss.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-sm leading-6">
+                <div className="font-medium mb-1">분석 근거</div>
+                <p className="text-foreground/90">{data.recommendation.rationale}</p>
+              </div>
+              <div className="text-sm leading-6">
+                <div className="font-medium mb-1">⚠️ 리스크</div>
+                <p className="text-muted-foreground">{data.recommendation.risks}</p>
+              </div>
+            </div>
+          )}
+
+          {data.rawAi && !data.recommendation && (
+            <pre className="whitespace-pre-wrap text-xs bg-[color:var(--surface-2)] p-3 rounded-md">
+              {data.rawAi}
+            </pre>
+          )}
+
+          {/* News */}
+          {data.news.length > 0 && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+                관련 뉴스
+              </div>
+              <ul className="space-y-2">
+                {data.news.map((n, i) => (
+                  <li key={i} className="text-sm">
+                    <a
+                      href={n.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex items-start gap-2 hover:text-[color:var(--primary)] transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 mt-1 shrink-0 opacity-60 group-hover:opacity-100" />
+                      <span className="flex-1">
+                        <span className="block leading-snug">{n.title}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {n.publisher}
+                          {n.publishedAt
+                            ? ` · ${new Date(n.publishedAt).toLocaleDateString("ko-KR")}`
+                            : ""}
+                        </span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="text-[11px] text-muted-foreground pt-2 border-t border-border">
+            ⚠️ 본 분석은 정보 제공 목적이며 투자 권유가 아닙니다. 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Metric({ label, value, bull }: { label: string; value: string; bull?: boolean }) {
+  return (
+    <div className="rounded-md bg-[color:var(--surface-2)] px-3 py-2">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div
+        className="text-sm font-semibold tabular"
+        style={
+          bull === undefined
+            ? undefined
+            : { color: bull ? "var(--bull)" : "var(--bear)" }
+        }
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
