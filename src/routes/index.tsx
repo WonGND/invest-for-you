@@ -89,6 +89,11 @@ function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-10">
+        {/* Stock analyzer (top) */}
+        <section>
+          <StockAnalyzer />
+        </section>
+
         {/* Indicators */}
         <section>
           <div className="flex items-baseline justify-between mb-4">
