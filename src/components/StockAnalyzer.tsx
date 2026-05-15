@@ -138,6 +138,11 @@ export function StockAnalyzer() {
                 <div className="rounded-md bg-[color:var(--surface-2)] p-3">
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
                     <LogIn className="w-3 h-3" /> 추천 진입가
+                    {data.recommendation.entryPrice != null && data.price != null && (
+                      <span className="ml-auto text-[10px] text-muted-foreground">
+                        현재가 대비 {(((data.recommendation.entryPrice - data.price) / data.price) * 100).toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                   <div className="text-lg font-semibold tabular">
                     {data.recommendation.entryPrice != null
@@ -147,11 +152,10 @@ export function StockAnalyzer() {
                 </div>
                 <div className="rounded-md bg-[color:var(--surface-2)] p-3">
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-                    <Target className="w-3 h-3" /> 목표가
+                    <Target className="w-3 h-3" /> 목표가 (수익 실현)
                     {data.recommendation.expectedReturn != null && (
-                      <span className="ml-auto text-[10px]" style={{ color: "var(--bull)" }}>
-                        {data.recommendation.expectedReturn >= 0 ? "+" : ""}
-                        {data.recommendation.expectedReturn.toFixed(1)}%
+                      <span className="ml-auto text-[10px] font-semibold" style={{ color: "var(--bull)" }}>
+                        +{data.recommendation.expectedReturn.toFixed(1)}% 이익
                       </span>
                     )}
                   </div>
@@ -163,7 +167,12 @@ export function StockAnalyzer() {
                 </div>
                 <div className="rounded-md bg-[color:var(--surface-2)] p-3">
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-                    <ShieldAlert className="w-3 h-3" /> 손절가
+                    <ShieldAlert className="w-3 h-3" /> 손절가 (손실 제한)
+                    {data.recommendation.stopLossPercent != null && (
+                      <span className="ml-auto text-[10px] font-semibold" style={{ color: "var(--bear)" }}>
+                        {data.recommendation.stopLossPercent.toFixed(1)}% 손실
+                      </span>
+                    )}
                   </div>
                   <div className="text-lg font-semibold tabular" style={{ color: "var(--bear)" }}>
                     {data.recommendation.stopLoss != null
