@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { BookOpen, CheckCircle2, Info, LogIn } from "lucide-react";
 import { Search, Sparkles, ExternalLink, Target, ShieldAlert, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { analyzeStock, type StockAnalysis } from "@/lib/market.functions";
