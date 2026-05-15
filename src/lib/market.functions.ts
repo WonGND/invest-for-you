@@ -316,3 +316,197 @@ export const getChartHistory = createServerFn({ method: "GET" })
     }
     return { points, error: null as string | null };
   });
+
+// =========== Stock analyzer (search by symbol) ===========
+
+export type NewsItem = { title: string; publisher?: string; link?: string; publishedAt?: number };
+
+export type StockAnalysis = {
+  symbol: string;
+  name: string;
+  price: number | null;
+  currency?: string;
+  changePercent: number | null;
+  metric: StockMetric | null;
+  news: NewsItem[];
+  recommendation: {
+    action: "매수" | "보유" | "매도" | "관망";
+    confidence: "낮음" | "중간" | "높음";
+    targetPrice: number | null;
+    stopLoss: number | null;
+    horizon: string;
+    rationale: string;
+    risks: string;
+  } | null;
+  rawAi?: string;
+  error?: string;
+};
+
+async function fetchYahooNews(symbol: string): Promise<NewsItem[]> {
+  try {
+    const r = await fetch(
+      `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(
+        symbol
+      )}&newsCount=8&quotesCount=1`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; MarketPulse/1.0)",
+          Accept: "application/json",
+        },
+      }
+    );
+    if (!r.ok) return [];
+    const json: any = await r.json();
+    const news: any[] = json?.news ?? [];
+    return news.slice(0, 8).map((n) => ({
+      title: n.title,
+      publisher: n.publisher,
+      link: n.link,
+      publishedAt: n.providerPublishTime ? n.providerPublishTime * 1000 : undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function normalizeSymbol(input: string): string {
+  const s = input.trim().toUpperCase();
+  if (!s) return s;
+  // Korean 6-digit code -> append .KS by default
+  if (/^\d{6}$/.test(s)) return `${s}.KS`;
+  return s;
+}
+
+export const analyzeStock = createServerFn({ method: "GET" })
+  .inputValidator((data: { symbol: string }) => data)
+  .handler(async ({ data }): Promise<StockAnalysis> => {
+    const symbol = normalizeSymbol(data.symbol);
+    if (!symbol) {
+      return {
+        symbol: data.symbol,
+        name: data.symbol,
+        price: null,
+        changePercent: null,
+        metric: null,
+        news: [],
+        recommendation: null,
+        error: "종목 코드를 입력하세요.",
+      };
+    }
+
+    // Pull metric (which also gets price/RSI/momentum)
+    const usOrKr: "US" | "KR" = symbol.endsWith(".KS") || symbol.endsWith(".KQ") ? "KR" : "US";
+    const [metric, news, quoteRes] = await Promise.all([
+      fetchStockMetric(symbol, usOrKr),
+      fetchYahooNews(symbol),
+      fetch(`${YF_CHART}/${encodeURIComponent(symbol)}?interval=1d&range=5d`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; MarketPulse/1.0)",
+          Accept: "application/json",
+        },
+      }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]);
+
+    const meta = quoteRes?.chart?.result?.[0]?.meta;
+    const price = metric?.price ?? meta?.regularMarketPrice ?? null;
+    const prev = meta?.chartPreviousClose ?? meta?.previousClose;
+    const changePercent =
+      metric?.changePercent ??
+      (price != null && prev ? ((price - prev) / prev) * 100 : null);
+    const name =
+      STOCK_NAMES[symbol] ?? meta?.longName ?? meta?.shortName ?? symbol;
+    const currency = meta?.currency;
+
+    if (price == null) {
+      return {
+        symbol,
+        name,
+        price: null,
+        changePercent: null,
+        metric: null,
+        news,
+        recommendation: null,
+        error: "해당 종목 데이터를 찾을 수 없습니다. 심볼을 확인해주세요. (예: AAPL, 005930.KS)",
+      };
+    }
+
+    // AI recommendation
+    let recommendation: StockAnalysis["recommendation"] = null;
+    let rawAi = "";
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (apiKey) {
+      try {
+        const newsText = news.length
+          ? news
+              .map(
+                (n, i) =>
+                  `${i + 1}. [${n.publisher ?? "출처미상"}] ${n.title}`
+              )
+              .join("\n")
+          : "(최근 뉴스 없음)";
+        const metricText = metric
+          ? `현재가 ${metric.price.toFixed(2)} ${currency ?? ""} | 1일 ${metric.changePercent.toFixed(2)}% | 5일 ${metric.changePercent5d.toFixed(2)}% | 20일 ${metric.changePercent20d.toFixed(2)}% | RSI14 ${metric.rsi14.toFixed(0)} | 거래량비 ${metric.volumeRatio.toFixed(2)}x`
+          : `현재가 ${price.toFixed(2)} ${currency ?? ""}`;
+
+        const aiRes = await fetch(
+          "https://ai.gateway.lovable.dev/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "당신은 한국어로 답변하는 시장 분석가입니다. 모멘텀/뉴스 흐름을 종합해 정보 제공 목적의 의견을 제시하세요. 반드시 JSON만 반환하세요.",
+                },
+                {
+                  role: "user",
+                  content: `종목: ${name} (${symbol})\n[지표]\n${metricText}\n\n[최근 뉴스]\n${newsText}\n\n다음 JSON 스키마로만 답하세요 (코드블록 없이 순수 JSON):\n{\n  "action": "매수" | "보유" | "매도" | "관망",\n  "confidence": "낮음" | "중간" | "높음",\n  "targetPrice": number,   // 향후 목표가 (현재가 통화 동일)\n  "stopLoss": number,      // 손절가\n  "horizon": string,       // 예: "1~3개월"\n  "rationale": string,     // 핵심 근거 2~4문장 (지표+뉴스 기반)\n  "risks": string          // 주의해야 할 리스크 1~2문장\n}`,
+                },
+              ],
+              response_format: { type: "json_object" },
+            }),
+          }
+        );
+        if (aiRes.ok) {
+          const json: any = await aiRes.json();
+          rawAi = json?.choices?.[0]?.message?.content ?? "";
+          try {
+            const parsed = JSON.parse(rawAi);
+            recommendation = {
+              action: parsed.action,
+              confidence: parsed.confidence,
+              targetPrice: typeof parsed.targetPrice === "number" ? parsed.targetPrice : null,
+              stopLoss: typeof parsed.stopLoss === "number" ? parsed.stopLoss : null,
+              horizon: parsed.horizon ?? "",
+              rationale: parsed.rationale ?? "",
+              risks: parsed.risks ?? "",
+            };
+          } catch {
+            // leave rawAi for display
+          }
+        } else {
+          console.error("AI gateway error", aiRes.status, await aiRes.text());
+        }
+      } catch (e) {
+        console.error("analyzeStock AI failed", e);
+      }
+    }
+
+    return {
+      symbol,
+      name,
+      price,
+      currency,
+      changePercent,
+      metric,
+      news,
+      recommendation,
+      rawAi,
+    };
+  });
