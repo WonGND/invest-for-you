@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, Sparkles, RefreshCw, TrendingUp } from "lucide-react";
 import {
   getMarketSnapshot,
+  getMarketNews,
   getStockRecommendations,
   type StockMetric,
 } from "@/lib/market.functions";
@@ -11,6 +12,7 @@ import { IndicatorCard } from "@/components/IndicatorCard";
 import { StockRow } from "@/components/StockRow";
 import { ChartDialog } from "@/components/ChartDialog";
 import { StockAnalyzer } from "@/components/StockAnalyzer";
+import { NewsList } from "@/components/NewsList";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/")({
@@ -48,6 +50,12 @@ function Dashboard() {
   const recs = useQuery({
     queryKey: ["recs"],
     queryFn: () => getStockRecommendations(),
+    refetchInterval: 5 * 60_000,
+    staleTime: 2 * 60_000,
+  });
+  const news = useQuery({
+    queryKey: ["news"],
+    queryFn: () => getMarketNews(),
     refetchInterval: 5 * 60_000,
     staleTime: 2 * 60_000,
   });
@@ -93,6 +101,13 @@ function Dashboard() {
         <section>
           <StockAnalyzer />
         </section>
+
+        {/* Market News */}
+        <NewsList
+          items={news.data?.items ?? []}
+          loading={news.isLoading}
+          fetchedAt={news.data?.fetchedAt}
+        />
 
         {/* Indicators */}
         <section>

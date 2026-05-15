@@ -89,6 +89,114 @@ export const getMarketSnapshot = createServerFn({ method: "GET" }).handler(
   }
 );
 
+// ===== Market News =====
+export type MarketNewsItem = {
+  title: string;
+  link: string;
+  source: string;
+  publishedAt: string; // ISO
+  category: "국내" | "해외" | "시장";
+};
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/<[^>]+>/g, "")
+    .trim();
+}
+
+function parseRss(xml: string): { title: string; link: string; pubDate: string }[] {
+  const items: { title: string; link: string; pubDate: string }[] = [];
+  const itemRegex = /<item[\s\S]*?<\/item>/g;
+  const matches = xml.match(itemRegex) ?? [];
+  for (const block of matches) {
+    const title = block.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? "";
+    const link = block.match(/<link>([\s\S]*?)<\/link>/)?.[1] ?? "";
+    const pubDate = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] ?? "";
+    if (title && link) {
+      items.push({
+        title: decodeEntities(title),
+        link: decodeEntities(link),
+        pubDate: decodeEntities(pubDate),
+      });
+    }
+  }
+  return items;
+}
+
+async function fetchRss(
+  url: string,
+  source: string,
+  category: MarketNewsItem["category"]
+): Promise<MarketNewsItem[]> {
+  try {
+    const r = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; MarketPulse/1.0)",
+        Accept: "application/rss+xml, application/xml, text/xml",
+      },
+    });
+    if (!r.ok) return [];
+    const xml = await r.text();
+    return parseRss(xml).map((it) => ({
+      title: it.title,
+      link: it.link,
+      source,
+      publishedAt: it.pubDate ? new Date(it.pubDate).toISOString() : new Date().toISOString(),
+      category,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export const getMarketNews = createServerFn({ method: "GET" }).handler(async () => {
+  const feeds = await Promise.all([
+    // Global / US markets via Yahoo Finance RSS
+    fetchRss(
+      "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^GSPC,^IXIC,^DJI&region=US&lang=en-US",
+      "Yahoo Finance",
+      "해외"
+    ),
+    // Korea markets via Yahoo Finance RSS (KOSPI/KOSDAQ)
+    fetchRss(
+      "https://feeds.finance.yahoo.com/rss/2.0/headline?s=^KS11,^KQ11&region=US&lang=en-US",
+      "Yahoo Finance",
+      "국내"
+    ),
+    // Google News - 증시 (Korean)
+    fetchRss(
+      "https://news.google.com/rss/search?q=%EC%A6%9D%EC%8B%9C+OR+%EC%BD%94%EC%8A%A4%ED%94%BC+OR+%EC%BD%94%EC%8A%A4%EB%8B%A5&hl=ko&gl=KR&ceid=KR:ko",
+      "Google News",
+      "국내"
+    ),
+    // Google News - stock market (English)
+    fetchRss(
+      "https://news.google.com/rss/search?q=stock+market+OR+S%26P+500+OR+nasdaq&hl=en-US&gl=US&ceid=US:en",
+      "Google News",
+      "해외"
+    ),
+  ]);
+
+  const all = feeds.flat();
+  // Dedupe by title
+  const seen = new Set<string>();
+  const unique = all.filter((n) => {
+    const key = n.title.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  unique.sort((a, b) => +new Date(b.publishedAt) - +new Date(a.publishedAt));
+  return { items: unique.slice(0, 18), fetchedAt: new Date().toISOString() };
+});
+
 // Stock universe for recommendations (10 each)
 export const US_STOCKS = [
   "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
