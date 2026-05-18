@@ -13,6 +13,7 @@ import { StockRow } from "@/components/StockRow";
 import { ChartDialog } from "@/components/ChartDialog";
 import { StockAnalyzer } from "@/components/StockAnalyzer";
 import { NewsList } from "@/components/NewsList";
+import { TopTradedStocks } from "@/components/TopTradedStocks";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/")({
@@ -101,6 +102,9 @@ function Dashboard() {
         <section>
           <StockAnalyzer />
         </section>
+
+        {/* Top traded stocks (between analyzer and news) */}
+        <TopTradedStocks onSelect={setSelected} />
 
         {/* Market News */}
         <NewsList
