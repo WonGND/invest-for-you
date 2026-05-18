@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { BookOpen, CheckCircle2, Info, LogIn } from "lucide-react";
+import { BookOpen, CheckCircle2, ChevronDown, ChevronUp, Info, LogIn } from "lucide-react";
 import { Search, Sparkles, ExternalLink, Target, ShieldAlert, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { analyzeStock, type StockAnalysis } from "@/lib/market.functions";
+import {
+  analyzeStock,
+  searchStockDirectory,
+  type StockAnalysis,
+  type DirectoryEntry,
+} from "@/lib/market.functions";
 
 const ACTION_COLORS: Record<string, string> = {
   매수: "var(--bull)",
@@ -14,15 +19,40 @@ const ACTION_COLORS: Record<string, string> = {
 
 export function StockAnalyzer() {
   const [input, setInput] = useState("");
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const suggestions: DirectoryEntry[] = useMemo(
+    () => (input.trim() ? searchStockDirectory(input, 8) : []),
+    [input]
+  );
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setShowSuggest(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
 
   const mut = useMutation({
     mutationFn: (symbol: string) => analyzeStock({ data: { symbol } }),
+    onSuccess: () => setCollapsed(false),
   });
 
-  const submit = () => {
-    const s = input.trim();
+  const submit = (override?: string) => {
+    const s = (override ?? input).trim();
     if (!s) return;
+    setShowSuggest(false);
     mut.mutate(s);
+  };
+
+  const pickSuggestion = (d: DirectoryEntry) => {
+    setInput(d.name);
+    setShowSuggest(false);
+    mut.mutate(d.symbol);
   };
 
   const data: StockAnalysis | undefined = mut.data;
@@ -41,14 +71,49 @@ export function StockAnalyzer() {
           e.preventDefault();
           submit();
         }}
-        className="flex gap-2"
+        className="flex gap-2 relative"
+        ref={wrapRef}
       >
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="종목 코드 입력 (예: AAPL, TSLA, 005930.KS, 035420.KS)"
-          className="bg-[color:var(--surface-2)] border-border"
-        />
+        <div className="flex-1 relative">
+          <Input
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setShowSuggest(true);
+            }}
+            onFocus={() => setShowSuggest(true)}
+            placeholder="종목명 또는 코드 (예: 삼성전자, SK하이닉스, AAPL, 005930)"
+            className="bg-[color:var(--surface-2)] border-border"
+            autoComplete="off"
+          />
+          {showSuggest && suggestions.length > 0 && (
+            <ul className="absolute left-0 right-0 top-full mt-1 z-20 max-h-72 overflow-auto rounded-md bg-[color:var(--surface-2)] border border-border shadow-lg">
+              {suggestions.map((s) => (
+                <li key={s.symbol}>
+                  <button
+                    type="button"
+                    onClick={() => pickSuggestion(s)}
+                    className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-[color:var(--surface)] transition-colors"
+                  >
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                        s.market === "KR"
+                          ? "bg-[color:var(--primary)]/15 text-[color:var(--primary)]"
+                          : "bg-foreground/10 text-foreground/70"
+                      }`}
+                    >
+                      {s.market}
+                    </span>
+                    <span className="text-sm font-medium">{s.name}</span>
+                    <span className="text-[11px] text-muted-foreground tabular ml-auto">
+                      {s.symbol}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <button
           type="submit"
           disabled={mut.isPending}
@@ -62,6 +127,7 @@ export function StockAnalyzer() {
           분석
         </button>
       </form>
+
 
       {mut.isPending && (
         <div className="text-sm text-muted-foreground py-6 text-center">
