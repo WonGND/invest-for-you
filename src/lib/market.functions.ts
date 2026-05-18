@@ -610,12 +610,88 @@ async function fetchYahooNews(symbol: string): Promise<NewsItem[]> {
 }
 
 function normalizeSymbol(input: string): string {
-  const s = input.trim().toUpperCase();
-  if (!s) return s;
-  // Korean 6-digit code -> append .KS by default
-  if (/^\d{6}$/.test(s)) return `${s}.KS`;
-  return s;
+  return resolveSymbol(input);
 }
+
+// ===== Top traded (by 거래대금 = price × volume) =====
+export type TradedStock = {
+  symbol: string;
+  name: string;
+  market: "US" | "KR";
+  price: number;
+  changePercent: number;
+  tradedValue: number; // recent 5d avg of close*volume, in local currency
+  currency?: string;
+};
+
+async function fetchTradedValue(
+  sym: string,
+  market: "US" | "KR"
+): Promise<TradedStock | null> {
+  try {
+    const r = await fetch(
+      `${YF_CHART}/${encodeURIComponent(sym)}?interval=1d&range=5d`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; MarketPulse/1.0)",
+          Accept: "application/json",
+        },
+      }
+    );
+    if (!r.ok) return null;
+    const json: any = await r.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) return null;
+    const meta = result.meta;
+    const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? [];
+    const volumes: (number | null)[] = result.indicators?.quote?.[0]?.volume ?? [];
+    let sum = 0;
+    let n = 0;
+    for (let i = 0; i < closes.length; i++) {
+      const c = closes[i];
+      const v = volumes[i];
+      if (c != null && v != null) {
+        sum += c * v;
+        n++;
+      }
+    }
+    if (n === 0) return null;
+    const price = meta.regularMarketPrice ?? closes[closes.length - 1] ?? 0;
+    const prev = meta.chartPreviousClose ?? meta.previousClose ?? price;
+    const changePercent = prev ? ((price - prev) / prev) * 100 : 0;
+    return {
+      symbol: sym,
+      name: STOCK_NAMES[sym] ?? sym,
+      market,
+      price,
+      changePercent,
+      tradedValue: sum / n,
+      currency: meta.currency,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export const getTopTradedStocks = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const krList = STOCK_DIRECTORY.filter((d) => d.market === "KR");
+    const usList = STOCK_DIRECTORY.filter((d) => d.market === "US");
+    const [krRes, usRes] = await Promise.all([
+      Promise.all(krList.map((d) => fetchTradedValue(d.symbol, "KR"))),
+      Promise.all(usList.map((d) => fetchTradedValue(d.symbol, "US"))),
+    ]);
+    const kr = krRes
+      .filter((s): s is TradedStock => s !== null)
+      .sort((a, b) => b.tradedValue - a.tradedValue)
+      .slice(0, 10);
+    const us = usRes
+      .filter((s): s is TradedStock => s !== null)
+      .sort((a, b) => b.tradedValue - a.tradedValue)
+      .slice(0, 10);
+    return { kr, us, fetchedAt: new Date().toISOString() };
+  }
+);
 
 export const analyzeStock = createServerFn({ method: "GET" })
   .inputValidator((data: { symbol: string }) => data)
