@@ -170,6 +170,8 @@ export function StockAnalyzer() {
             </div>
           </div>
 
+          {!collapsed && (<>
+
           {/* Metric strip */}
           {data.metric && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
