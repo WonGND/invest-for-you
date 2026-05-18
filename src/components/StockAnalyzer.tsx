@@ -346,9 +346,31 @@ export function StockAnalyzer() {
             </div>
           )}
 
-          <p className="text-[11px] text-muted-foreground pt-2 border-t border-border">
-            ⚠️ 본 분석은 정보 제공 목적이며 투자 권유가 아닙니다. 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.
-          </p>
+          </>)}
+
+          <div className="flex items-center justify-center pt-2 border-t border-border">
+            <button
+              type="button"
+              onClick={() => setCollapsed((c) => !c)}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[color:var(--surface-2)] hover:bg-[color:var(--surface)] border border-border transition-colors"
+            >
+              {collapsed ? (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5" /> 분석 내용 펼치기
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5" /> 분석 내용 접기
+                </>
+              )}
+            </button>
+          </div>
+
+          {!collapsed && (
+            <p className="text-[11px] text-muted-foreground">
+              ⚠️ 본 분석은 정보 제공 목적이며 투자 권유가 아닙니다. 투자 결정은 본인의 판단과 책임 하에 이루어져야 합니다.
+            </p>
+          )}
         </div>
       )}
     </div>
