@@ -21,7 +21,7 @@ export function StockAnalyzer() {
   const [input, setInput] = useState("");
   const [showSuggest, setShowSuggest] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLFormElement>(null);
 
   const suggestions: DirectoryEntry[] = useMemo(
     () => (input.trim() ? searchStockDirectory(input, 8) : []),
