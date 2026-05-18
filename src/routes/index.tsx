@@ -103,6 +103,9 @@ function Dashboard() {
           <StockAnalyzer />
         </section>
 
+        {/* Top traded stocks (between analyzer and news) */}
+        <TopTradedStocks onSelect={setSelected} />
+
         {/* Market News */}
         <NewsList
           items={news.data?.items ?? []}
