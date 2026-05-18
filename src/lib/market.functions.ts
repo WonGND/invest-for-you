@@ -207,15 +207,140 @@ export const KR_STOCKS = [
   "051910.KS", "006400.KS", "207940.KS", "068270.KS", "247540.KQ",
 ];
 
-export const STOCK_NAMES: Record<string, string> = {
-  "AAPL": "Apple", "MSFT": "Microsoft", "GOOGL": "Alphabet", "AMZN": "Amazon",
-  "NVDA": "NVIDIA", "META": "Meta", "TSLA": "Tesla", "AVGO": "Broadcom",
-  "AMD": "AMD", "NFLX": "Netflix",
-  "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "035420.KS": "NAVER",
-  "035720.KS": "카카오", "005380.KS": "현대차", "051910.KS": "LG화학",
-  "006400.KS": "삼성SDI", "207940.KS": "삼성바이오로직스",
-  "068270.KS": "셀트리온", "247540.KQ": "에코프로비엠",
+// Extended directory used for search/autocomplete and top-traded ranking.
+// aliases: comma-separated alternative names (Korean/English/nicknames) for search matching.
+export type DirectoryEntry = {
+  symbol: string;
+  name: string;
+  market: "US" | "KR";
+  aliases?: string[];
 };
+
+export const STOCK_DIRECTORY: DirectoryEntry[] = [
+  // ===== Korea =====
+  { symbol: "005930.KS", name: "삼성전자", market: "KR", aliases: ["Samsung Electronics", "삼전"] },
+  { symbol: "000660.KS", name: "SK하이닉스", market: "KR", aliases: ["SK Hynix", "하이닉스"] },
+  { symbol: "035420.KS", name: "NAVER", market: "KR", aliases: ["네이버", "Naver"] },
+  { symbol: "035720.KS", name: "카카오", market: "KR", aliases: ["Kakao"] },
+  { symbol: "005380.KS", name: "현대차", market: "KR", aliases: ["Hyundai Motor", "현대자동차"] },
+  { symbol: "000270.KS", name: "기아", market: "KR", aliases: ["Kia", "기아차"] },
+  { symbol: "051910.KS", name: "LG화학", market: "KR", aliases: ["LG Chem"] },
+  { symbol: "006400.KS", name: "삼성SDI", market: "KR", aliases: ["Samsung SDI"] },
+  { symbol: "207940.KS", name: "삼성바이오로직스", market: "KR", aliases: ["Samsung Biologics", "삼바"] },
+  { symbol: "068270.KS", name: "셀트리온", market: "KR", aliases: ["Celltrion"] },
+  { symbol: "247540.KQ", name: "에코프로비엠", market: "KR", aliases: ["Ecopro BM"] },
+  { symbol: "086520.KQ", name: "에코프로", market: "KR", aliases: ["Ecopro"] },
+  { symbol: "005490.KS", name: "POSCO홀딩스", market: "KR", aliases: ["포스코홀딩스", "POSCO"] },
+  { symbol: "105560.KS", name: "KB금융", market: "KR", aliases: ["KB Financial", "국민은행"] },
+  { symbol: "055550.KS", name: "신한지주", market: "KR", aliases: ["Shinhan Financial"] },
+  { symbol: "086790.KS", name: "하나금융지주", market: "KR", aliases: ["Hana Financial"] },
+  { symbol: "316140.KS", name: "우리금융지주", market: "KR", aliases: ["Woori Financial"] },
+  { symbol: "028260.KS", name: "삼성물산", market: "KR", aliases: ["Samsung C&T"] },
+  { symbol: "012330.KS", name: "현대모비스", market: "KR", aliases: ["Hyundai Mobis"] },
+  { symbol: "003670.KS", name: "포스코퓨처엠", market: "KR", aliases: ["POSCO Future M"] },
+  { symbol: "066570.KS", name: "LG전자", market: "KR", aliases: ["LG Electronics"] },
+  { symbol: "373220.KS", name: "LG에너지솔루션", market: "KR", aliases: ["LG Energy Solution", "엘지엔솔"] },
+  { symbol: "015760.KS", name: "한국전력", market: "KR", aliases: ["KEPCO", "한전"] },
+  { symbol: "017670.KS", name: "SK텔레콤", market: "KR", aliases: ["SK Telecom"] },
+  { symbol: "030200.KS", name: "KT", market: "KR", aliases: ["케이티"] },
+  { symbol: "032830.KS", name: "삼성생명", market: "KR", aliases: ["Samsung Life"] },
+  { symbol: "009150.KS", name: "삼성전기", market: "KR", aliases: ["Samsung Electro-Mechanics"] },
+  { symbol: "010130.KS", name: "고려아연", market: "KR", aliases: ["Korea Zinc"] },
+  { symbol: "011200.KS", name: "HMM", market: "KR", aliases: ["에이치엠엠"] },
+  { symbol: "009540.KS", name: "HD한국조선해양", market: "KR", aliases: ["HD KSOE"] },
+  { symbol: "042660.KS", name: "한화오션", market: "KR", aliases: ["Hanwha Ocean"] },
+  { symbol: "251270.KS", name: "넷마블", market: "KR", aliases: ["Netmarble"] },
+  { symbol: "036570.KS", name: "엔씨소프트", market: "KR", aliases: ["NCsoft"] },
+  { symbol: "259960.KS", name: "크래프톤", market: "KR", aliases: ["Krafton"] },
+  { symbol: "326030.KS", name: "SK바이오팜", market: "KR", aliases: ["SK Biopharm"] },
+  { symbol: "196170.KQ", name: "알테오젠", market: "KR", aliases: ["Alteogen"] },
+  { symbol: "091990.KQ", name: "셀트리온헬스케어", market: "KR", aliases: ["Celltrion Healthcare"] },
+
+  // ===== US / Global =====
+  { symbol: "AAPL", name: "Apple", market: "US", aliases: ["애플"] },
+  { symbol: "MSFT", name: "Microsoft", market: "US", aliases: ["마이크로소프트", "MS"] },
+  { symbol: "GOOGL", name: "Alphabet", market: "US", aliases: ["구글", "Google"] },
+  { symbol: "AMZN", name: "Amazon", market: "US", aliases: ["아마존"] },
+  { symbol: "NVDA", name: "NVIDIA", market: "US", aliases: ["엔비디아"] },
+  { symbol: "META", name: "Meta", market: "US", aliases: ["메타", "Facebook", "페이스북"] },
+  { symbol: "TSLA", name: "Tesla", market: "US", aliases: ["테슬라"] },
+  { symbol: "AVGO", name: "Broadcom", market: "US", aliases: ["브로드컴"] },
+  { symbol: "AMD", name: "AMD", market: "US", aliases: ["에이엠디"] },
+  { symbol: "NFLX", name: "Netflix", market: "US", aliases: ["넷플릭스"] },
+  { symbol: "INTC", name: "Intel", market: "US", aliases: ["인텔"] },
+  { symbol: "ORCL", name: "Oracle", market: "US", aliases: ["오라클"] },
+  { symbol: "CRM", name: "Salesforce", market: "US", aliases: ["세일즈포스"] },
+  { symbol: "ADBE", name: "Adobe", market: "US", aliases: ["어도비"] },
+  { symbol: "QCOM", name: "Qualcomm", market: "US", aliases: ["퀄컴"] },
+  { symbol: "COST", name: "Costco", market: "US", aliases: ["코스트코"] },
+  { symbol: "WMT", name: "Walmart", market: "US", aliases: ["월마트"] },
+  { symbol: "JPM", name: "JPMorgan Chase", market: "US", aliases: ["JP모건"] },
+  { symbol: "V", name: "Visa", market: "US", aliases: ["비자"] },
+  { symbol: "MA", name: "Mastercard", market: "US", aliases: ["마스터카드"] },
+  { symbol: "BAC", name: "Bank of America", market: "US", aliases: ["뱅크오브아메리카"] },
+  { symbol: "DIS", name: "Disney", market: "US", aliases: ["디즈니"] },
+  { symbol: "KO", name: "Coca-Cola", market: "US", aliases: ["코카콜라"] },
+  { symbol: "MCD", name: "McDonald's", market: "US", aliases: ["맥도날드"] },
+  { symbol: "NKE", name: "Nike", market: "US", aliases: ["나이키"] },
+  { symbol: "BA", name: "Boeing", market: "US", aliases: ["보잉"] },
+  { symbol: "XOM", name: "ExxonMobil", market: "US", aliases: ["엑손모빌"] },
+  { symbol: "CVX", name: "Chevron", market: "US", aliases: ["쉐브론"] },
+  { symbol: "JNJ", name: "Johnson & Johnson", market: "US", aliases: ["존슨앤존슨"] },
+  { symbol: "UNH", name: "UnitedHealth", market: "US", aliases: ["유나이티드헬스"] },
+  { symbol: "LLY", name: "Eli Lilly", market: "US", aliases: ["일라이릴리"] },
+  { symbol: "PFE", name: "Pfizer", market: "US", aliases: ["화이자"] },
+  { symbol: "TSM", name: "TSMC", market: "US", aliases: ["대만 반도체"] },
+  { symbol: "BABA", name: "Alibaba", market: "US", aliases: ["알리바바"] },
+  { symbol: "UBER", name: "Uber", market: "US", aliases: ["우버"] },
+  { symbol: "SHOP", name: "Shopify", market: "US", aliases: ["쇼피파이"] },
+  { symbol: "COIN", name: "Coinbase", market: "US", aliases: ["코인베이스"] },
+  { symbol: "PLTR", name: "Palantir", market: "US", aliases: ["팔란티어"] },
+];
+
+export const STOCK_NAMES: Record<string, string> = Object.fromEntries(
+  STOCK_DIRECTORY.map((d) => [d.symbol, d.name])
+);
+
+// Build search index: name + aliases + symbol -> symbol
+const SEARCH_INDEX: { key: string; entry: DirectoryEntry }[] = STOCK_DIRECTORY.flatMap((e) => {
+  const keys = [e.symbol, e.name, ...(e.aliases ?? [])];
+  return keys.map((k) => ({ key: k.toLowerCase(), entry: e }));
+});
+
+export function searchStockDirectory(q: string, limit = 8): DirectoryEntry[] {
+  const query = q.trim().toLowerCase();
+  if (!query) return [];
+  const seen = new Set<string>();
+  const out: DirectoryEntry[] = [];
+  // exact prefix first, then includes
+  const prefix = SEARCH_INDEX.filter((x) => x.key.startsWith(query));
+  const includes = SEARCH_INDEX.filter(
+    (x) => !x.key.startsWith(query) && x.key.includes(query)
+  );
+  for (const it of [...prefix, ...includes]) {
+    if (seen.has(it.entry.symbol)) continue;
+    seen.add(it.entry.symbol);
+    out.push(it.entry);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+export function resolveSymbol(input: string): string {
+  const s = input.trim();
+  if (!s) return s;
+  // direct match by symbol or name/alias
+  const hit = STOCK_DIRECTORY.find(
+    (d) =>
+      d.symbol.toLowerCase() === s.toLowerCase() ||
+      d.name.toLowerCase() === s.toLowerCase() ||
+      (d.aliases ?? []).some((a) => a.toLowerCase() === s.toLowerCase())
+  );
+  if (hit) return hit.symbol;
+  const up = s.toUpperCase();
+  if (/^\d{6}$/.test(up)) return `${up}.KS`;
+  return up;
+}
 
 export type StockMetric = {
   symbol: string;
